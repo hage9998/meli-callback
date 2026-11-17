@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <title>Meli MCP – Callback OAuth</title>
+  <style>
+    :root { --bg:#f5f5f5; --card:#fff; --txt:#222; --muted:#666; --accent:#3483fa; --ok:#00a650; --err:#f23d4f; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--txt); display:flex; min-height:100vh; align-items:center; justify-content:center; padding:24px; }
+    .card { background:var(--card); max-width:620px; width:100%; border-radius:12px; padding:32px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+    h1 { margin:0 0 8px; font-size:1.4rem; }
+    p { color:var(--muted); line-height:1.5; }
+    .code { display:flex; gap:8px; margin:16px 0; }
+    .code input { flex:1; font-family: ui-monospace, Menlo, Consolas, monospace; font-size:.95rem; padding:12px; border:1px solid #ddd; border-radius:8px; background:#fafafa; }
+    button { border:0; background:var(--accent); color:#fff; padding:0 18px; border-radius:8px; font-size:.95rem; cursor:pointer; }
+    button:hover { filter:brightness(.95); }
+    .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-size:.8rem; font-weight:600; color:#fff; margin-bottom:12px; }
+    .ok { background:var(--ok); } .err { background:var(--err); } .info { background:var(--accent); }
+    small { color:var(--muted); display:block; margin-top:4px; word-break:break-all; }
+    ul { color:var(--muted); line-height:1.6; padding-left:20px; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <main class="card">
+
+    <!-- Sucesso: recebeu o code -->
+    <section id="success" class="hidden">
+      <span class="badge ok">Autorizado</span>
+      <h1>Código de autorização recebido</h1>
+      <p>Copie o código abaixo e cole no seu MCP para gerar o <code>access_token</code>. Ele vale por poucos minutos e só pode ser usado uma vez.</p>
+      <div class="code">
+        <input id="code" readonly>
+        <button id="copy">Copiar</button>
+      </div>
+      <small id="state"></small>
+    </section>
+
+    <!-- Erro: usuário negou ou algo falhou -->
+    <section id="error" class="hidden">
+      <span class="badge err">Erro</span>
+      <h1>A autorização não foi concluída</h1>
+      <p id="errmsg"></p>
+    </section>
+
+    <!-- Sem parâmetros: página de apresentação -->
+    <section id="about" class="hidden">
+      <span class="badge info">Uso pessoal</span>
+      <h1>Meli MCP</h1>
+      <p>Ferramenta interna e de uso pessoal que conecta minha conta de vendedor do Mercado Livre a um assistente de IA através de um servidor MCP (Model Context Protocol) rodando localmente.</p>
+      <ul>
+        <li>Gerenciar meus anúncios (preço, estoque, pausar/ativar)</li>
+        <li>Responder perguntas de compradores</li>
+        <li>Consultar pedidos e métricas da minha conta</li>
+      </ul>
+      <p>Esta página é apenas o endereço de retorno (redirect URI) do OAuth 2.0. Nenhum dado é armazenado ou enviado a terceiros: o código é exibido somente no seu navegador.</p>
+    </section>
+
+  </main>
+
+  <script>
+    const q = new URLSearchParams(location.search);
+    const code = q.get("code");
+    const err = q.get("error");
+    const show = id => document.getElementById(id).classList.remove("hidden");
+
+    if (code) {
+      show("success");
+      document.getElementById("code").value = code;
+      if (q.get("state")) document.getElementById("state").textContent = "state: " + q.get("state");
+      document.getElementById("copy").onclick = async () => {
+        const btn = document.getElementById("copy");
+        try { await navigator.clipboard.writeText(code); }
+        catch { const i = document.getElementById("code"); i.select(); document.execCommand("copy"); }
+        btn.textContent = "Copiado!";
+        setTimeout(() => btn.textContent = "Copiar", 2000);
+      };
+      // Remove o code da barra de endereço/histórico depois de exibido
+      history.replaceState(null, "", location.pathname);
+    } else if (err) {
+      show("error");
+      document.getElementById("errmsg").textContent =
+        (q.get("error_description") || err) + " — tente iniciar a autorização novamente.";
+    } else {
+      show("about");
+    }
+  </script>
+</body>
+</html>
